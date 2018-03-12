@@ -144,8 +144,8 @@ void get_prev_cmd(char **tokens, int tokIdx, char buffer[]) {
 	int len = 0;
 	char *arg;
 
-	len = strlen(arg);
 	arg = *(tokens + tokIdx - 1);
+	len = strlen(arg);
 
 	strncpy(buffer, arg, len);
 }

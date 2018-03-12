@@ -70,18 +70,17 @@ void executeC()
 
 int main (int argc, char *argv[])
 {
-	pid_t pid;
-    struct Stage **stages;
+	pid_t pid = 0;
+    struct Stage **stages = NULL;
     int len = 0;
     // char *const parmList[] = {"ls", NULL};
     //
     // execv("/bin/ls", parmList);
-    getLine();
-    stages = get_stages();
-    len = get_num_stages();
-
-    printf("%d\n", len);
-    printf("%s\n", stages[0] -> output);
+    while(1) {
+        getLine();
+        stages = get_stages();
+        len = get_num_stages();
+    }
 
 	return 0;
 }
