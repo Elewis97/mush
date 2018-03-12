@@ -113,7 +113,7 @@ int get_redir(char **args_v, char *redir) {
 	return -1;
 }
 
-void check_double_redirect(char arg[], char **args_v, char *sym) {
+int check_double_redirect(char arg[], char **args_v, char *sym) {
 
 	char *redir = NULL;
 
@@ -125,9 +125,10 @@ void check_double_redirect(char arg[], char **args_v, char *sym) {
 		if(redir != NULL) {
 			fprintf(stderr,
 				"%s: bad input redirection", args_v[0]);
-			exit(0);
+			return -1;
 		}
 	}
+	return 0;
 }
 
 void get_prev_cmd(char **tokens, int tokIdx, char buffer[]) {
@@ -158,7 +159,7 @@ void get_next_cmd(char **tokens, int tokIdx, char buffer[]) {
 }
 
 
-void fillCommand(char arg[], char **tokens, int tokIdx, int len)
+int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 {
 	initStage();
 	int count = 0;
@@ -180,9 +181,7 @@ void fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	/*check if argument is all spaces*/
 	if (strcmp(arg, " ") == 0) {
 		fprintf(stderr, "invalid null command\n");
-		free(stage);
-		freeRemainingTokens(tokens, tokIdx);
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	i = 0;
@@ -204,8 +203,8 @@ void fillCommand(char arg[], char **tokens, int tokIdx, int len)
 
 	i = 0;
 
-	check_double_redirect(arg, args_v, "<");
-	check_double_redirect(arg, args_v, ">");
+	if(check_double_redirect(arg, args_v, "<") == -1) return -1;
+	if(check_double_redirect(arg, args_v, ">") == -1) return -1;
 
 	redir_in = get_redir(args_v, "<");
 	redir_out = get_redir(args_v, ">");
@@ -224,6 +223,7 @@ void fillCommand(char arg[], char **tokens, int tokIdx, int len)
 		/*printf("prevCmd: %s\n", prev_cmd);*/
 		if(redir_in > 0) {
 			fprintf(stderr, "%s: ambiguous input\n", prev_cmd);
+			return -1;
 		}
 		else {
 			snprintf(prev_cmd, 20,"pipe from stage %d",tokIdx - 1);
@@ -247,6 +247,7 @@ void fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	/*	printf("nextCmd: %s\n", next_cmd);*/
 		if(redir_out > 0) {
 			fprintf(stderr, "%s: ambiguous output\n", next_cmd);
+			return -1;
 		}
 		else {
 			snprintf(next_cmd, 17, "pipe to stage %d", tokIdx + 1);
@@ -285,7 +286,7 @@ void fillCommand(char arg[], char **tokens, int tokIdx, int len)
 
 	stage->argc = count;
 
-
+	return 0;
 }
 
 
@@ -298,12 +299,14 @@ bool getCommand(char arg[], char** tokens, int tokIdx)
 		len ++;
 		i++;
 	}
-	fillCommand(arg, tokens, tokIdx, len);
+	if(fillCommand(arg, tokens, tokIdx, len)) == -1) {
+		return true;
+	}
 	/*displayStage(stage);*/
 	return false;
 }
 
-void getStages(char arg[], int stageNum, char** tokens)
+bool getStages(char arg[], int stageNum, char** tokens)
 {
 	bool error = false;
 	printf("--------\nStage %d: ", stageNum);
@@ -316,11 +319,13 @@ void getStages(char arg[], int stageNum, char** tokens)
 
 	if (error) {
 		freeRemainingTokens(tokens, stageNum);
-		exit(EXIT_FAILURE);
+		free(stage);
+		return true;
 	}
+	return false;
 }
 
-int getLine()
+bool getLine()
 {
 	char line[CMAX];
 	char c;
@@ -368,7 +373,9 @@ int getLine()
 	/*loop through stages*/
 	i = 0;
 	while(*(tokens + i)) {
-		getStages(*(tokens + i), i, tokens);
+		if(!getStages(*(tokens + i), i, tokens)) {
+			return true;
+		}
 		/*free(*(tokens + i));*/
 		i++;
 	}
@@ -380,7 +387,7 @@ int getLine()
 	}
 	free(tokens);
 
-	return 0;
+	return false;
 }
 
 int main() {
