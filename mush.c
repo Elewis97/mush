@@ -3,12 +3,10 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
- #include <sys/types.h>
+#include <sys/types.h>
 #include <ctype.h>
 #include <unistd.h>
-
-#define CMAX 512 /*Command line length max*/
-#define PMAX 10  /*Pipeline command max*/
+#include "parseline.h"
 
 /*Things we need to do:
  - Make sure it doesn't exit at ctrl c*/
@@ -70,15 +68,20 @@ void executeC()
 }
 
 
-
-
-
 int main (int argc, char *argv[])
 {
 	pid_t pid;
-    char *const parmList[] = {"ls", NULL};
+    struct Stage **stages;
+    int len = 0;
+    // char *const parmList[] = {"ls", NULL};
+    //
+    // execv("/bin/ls", parmList);
+    getLine();
+    stages = get_stages();
+    len = get_num_stages();
 
-    execv("/bin/ls", parmList);
+    printf("%d\n", len);
+    printf("%s\n", stages[0] -> output);
 
 	return 0;
 }
