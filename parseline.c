@@ -15,12 +15,14 @@ struct Stage {
 	char argv[CMAX];
 };
 
-struct Stage *stage;
+struct Stage *stage = NULL;
+
+struct Stage *stages[PMAX] = {NULL};
 
 /********************Helper****************/
 
-struct Stage *get_stage() {
-	return stage;
+struct Stage **get_stages() {
+	return stages;
 }
 
 void initStage()
@@ -133,29 +135,23 @@ int check_double_redirect(char arg[], char **args_v, char *sym) {
 
 void get_prev_cmd(char **tokens, int tokIdx, char buffer[]) {
 
-	int i = 0;
+	int len = 0;
 	char *arg;
 
-	/*printf("tokens: %s", *(tokens));*/
+	len = strlen(arg);
 	arg = *(tokens + tokIdx - 1);
-	/*printf("getPrevArg: %s, (%d)\n", arg, tokIdx);*/
 
-	while(!isspace(arg[i])) {
-		buffer[i] = arg[i];
-		i++;
-	}
+	strncpy(buffer, arg, len);
 }
 
 
 void get_next_cmd(char **tokens, int tokIdx, char buffer[]) {
 
-	int i = 0;
+	int len = 0;
 	char *arg = *(tokens + tokIdx + 1);
+	len = strlen(arg + 1);
 
-	while(!isspace(arg[i])) {
-		buffer[i] = arg[i];
-		i++;
-	}
+	strncpy(buffer, arg + 1, len - 1);
 }
 
 
@@ -174,6 +170,7 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	char next_cmd[512] = {0};
 	char pipe_num_in = 0;
 	char pipe_num_out = 0;
+	static int stage_num = 0;
 
 	/*printf("arg: %s\n", arg);*/
 	/*printf("tokens: %s\n", *(tokens));*/
@@ -218,17 +215,13 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 		}
 	}
 	else {
-		/*printf("prevCmd: %s\n", prev_cmd);*/
 		get_prev_cmd(tokens, tokIdx, prev_cmd);
-		/*printf("prevCmd: %s\n", prev_cmd);*/
 		if(redir_in > 0) {
 			fprintf(stderr, "%s: ambiguous input\n", prev_cmd);
 			return -1;
 		}
 		else {
-			snprintf(prev_cmd, 20,"pipe from stage %d",tokIdx - 1);
-			/*pipe_num_in = (char) tokIdx - '0';
-			prev_cmd[14] = pipe_num_in;*/
+			/*snprintf(prev_cmd, 20,"pipe from stage %d",tokIdx - 1);*/
 			strcpy(stage -> input, prev_cmd);
 		}
 	}
@@ -244,21 +237,18 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	}
 	else {
 		get_next_cmd(tokens, tokIdx, next_cmd);
-	/*	printf("nextCmd: %s\n", next_cmd);*/
 		if(redir_out > 0) {
 			fprintf(stderr, "%s: ambiguous output\n", next_cmd);
 			return -1;
 		}
 		else {
-			snprintf(next_cmd, 17, "pipe to stage %d", tokIdx + 1);
-		//	pipe_num_out = (char) tokIdx - '0';
-		//	prev_cmd[14] = pipe_num_out;
+			/*snprintf(next_cmd, 17, "pipe to stage %d", tokIdx + 1);*/
 			strcpy(stage->output, next_cmd);
 		}
 	}
 
-	printf("%10s: %s\n", "input", stage->input);
-	printf("%10s: %s\n", "output", stage->output);
+	/*printf("%10s: %s\n", "input", stage->input);
+	printf("%10s: %s\n", "output", stage->output);*/
 	token = strtok(arg, " ");
 	for (i = 0; i < CMAX; i++)
 		tempArgv[i] = '\0';
@@ -281,10 +271,13 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 		tempArgv[strlen(tempArgv) - 1] = '\0';
 	}
 	strcpy(stage->argv, tempArgv);
-	printf("%10s: %d\n", "argc", count);
-	printf("%10s: %s\n", "argv", tempArgv);
+/*	printf("%10s: %d\n", "argc", count);
+	printf("%10s: %s\n", "argv", tempArgv);*/
 
 	stage->argc = count;
+
+	stages[stage_num] = stage;
+	stage_num++;
 
 	return 0;
 }
@@ -299,7 +292,7 @@ bool getCommand(char arg[], char** tokens, int tokIdx)
 		len ++;
 		i++;
 	}
-	if(fillCommand(arg, tokens, tokIdx, len)) == -1) {
+	if(fillCommand(arg, tokens, tokIdx, len) == -1) {
 		return true;
 	}
 	/*displayStage(stage);*/
@@ -309,9 +302,9 @@ bool getCommand(char arg[], char** tokens, int tokIdx)
 bool getStages(char arg[], int stageNum, char** tokens)
 {
 	bool error = false;
-	printf("--------\nStage %d: ", stageNum);
+	/*printf("--------\nStage %d: ", stageNum);
 	printf("\"%s\"\n", arg);
-	printf("--------\n");
+	printf("--------\n");*/
 
 	/*ensure to not exceed state limit*/
 
@@ -373,7 +366,7 @@ bool getLine()
 	/*loop through stages*/
 	i = 0;
 	while(*(tokens + i)) {
-		if(!getStages(*(tokens + i), i, tokens)) {
+		if(getStages(*(tokens + i), i, tokens)) {
 			return true;
 		}
 		/*free(*(tokens + i));*/
