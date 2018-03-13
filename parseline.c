@@ -15,14 +15,20 @@ struct Stage {
 	char argv[CMAX];
 };
 
-struct Stage *stage = NULL;
+static struct Stage *stage = NULL;
 
-struct Stage *stages[PMAX] = {NULL};
+static struct Stage *stages[PMAX] = {NULL};
+
+static int num_stages = 0;
 
 /********************Helper****************/
 
 struct Stage **get_stages() {
 	return stages;
+}
+
+int get_num_stages() {
+	return num_stages;
 }
 
 void initStage()
@@ -138,8 +144,8 @@ void get_prev_cmd(char **tokens, int tokIdx, char buffer[]) {
 	int len = 0;
 	char *arg;
 
-	len = strlen(arg);
 	arg = *(tokens + tokIdx - 1);
+	len = strlen(arg);
 
 	strncpy(buffer, arg, len);
 }
@@ -151,7 +157,7 @@ void get_next_cmd(char **tokens, int tokIdx, char buffer[]) {
 	char *arg = *(tokens + tokIdx + 1);
 	len = strlen(arg + 1);
 
-	strncpy(buffer, arg + 1, len - 1);
+	strncpy(buffer, arg + 1, len);
 }
 
 
@@ -211,7 +217,7 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 			strcpy(stage -> input, args_v[redir_in + 1]);
 		}
 		else {
-			strcpy(stage -> input, "original stdin");
+			strcpy(stage -> input, "stdin");
 		}
 	}
 	else {
@@ -229,7 +235,7 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	/*check for output*/
 	if (tokIdx == len - 1) {
 		if(redir_out < 0) {
-			strcpy(stage->output, "original stdout");
+			strcpy(stage->output, "stdout");
 		}
 		else {
 			strcpy(stage->output, args_v[redir_out + 1]);
@@ -247,8 +253,9 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 		}
 	}
 
-	/*printf("%10s: %s\n", "input", stage->input);
-	printf("%10s: %s\n", "output", stage->output);*/
+	// printf("%s\n", stage->input);
+	// printf("%s\n", stage->output);
+
 	token = strtok(arg, " ");
 	for (i = 0; i < CMAX; i++)
 		tempArgv[i] = '\0';
@@ -351,6 +358,7 @@ bool getLine()
 	tokens = splitStr(line, '|');
 	while(*(tokens + len)) {
 		len ++;
+		num_stages++;
 	}
 	if(len > PMAX) {
 		fprintf(stderr, "pipeline too deep\n");
@@ -382,9 +390,4 @@ bool getLine()
 
 	return false;
 }
-
-/*int main() {
-
-	getLine();
-	return 0;
-}*/
+	

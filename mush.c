@@ -9,10 +9,6 @@
 #include "parseline.h"
 #include <sys/wait.h>
 
-
-#define CMAX 512 /*Command line length max*/
-#define PMAX 10  /*Pipeline command max*/
-
 /*Things we need to do:
  - Make sure it doesn't exit at ctrl c*/
 
@@ -111,14 +107,16 @@ void executeC(char *command)
 }
 
 
-
-
-
 int main (int argc, char *argv[])
 {
-    char *const parmList[] = {"ls", NULL};
+	pid_t pid = 0;
+    struct Stage **stages = NULL;
+    int len = 0;
+    while(1) {
+        getLine();
+        stages = get_stages();
+        len = get_num_stages();
+    }
 
-    execv("/bin/ls", parmList);
-
-    return 0;
+	return 0;
 }
