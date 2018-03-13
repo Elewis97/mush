@@ -325,28 +325,28 @@ bool getStages(char arg[], int stageNum, char** tokens)
 	return false;
 }
 
-bool getLine()
+bool getLine(char line[])
 {
-	char line[CMAX];
+	// char line[CMAX];
 	char c;
 	int idx = 0;
 	char **tokens;
 	int i;
 	int len = 0;
 
-	printf("8-p ");
+	// printf("8-p ");
 
-	/*get command while checking if input
-	exceeds command line length max (CMAX)*/
-	while((c = getchar()) != '\n') {
-		line[idx] = c;
-		idx++;
-		if (idx > CMAX) {
-			fprintf(stderr,"command too long\n");
-			return -1;
-		}
-	}
-	line[idx] = '\0';
+	// /*get command while checking if input
+	// exceeds command line length max (CMAX)*/
+	// while((c = getchar()) != '\n') {
+	// 	line[idx] = c;
+	// 	idx++;
+	// 	if (idx > CMAX) {
+	// 		fprintf(stderr,"command too long\n");
+	// 		return -1;
+	// 	}
+	// }
+	// line[idx] = '\0';
 
 	/*Check if there are any commands*/
 	if (strlen(line) <= 1) {
@@ -390,4 +390,29 @@ bool getLine()
 
 	return false;
 }
+
+void getUserInput(char line[]) {
+	char c;
+	int idx = 0;
 	
+	printf("8-p ");
+
+	/*get command while checking if input
+	exceeds command line length max (CMAX)*/
+	while((c = getchar()) != '\n') {
+		line[idx] = c;
+		idx++;
+		if (idx > CMAX) {
+			fprintf(stderr,"command too long\n");
+			return;
+		}
+	}
+	line[idx] = '\0';
+
+	/*Check if there are any commands*/
+	if (strlen(line) <= 1) {
+		fprintf(stderr, "No command entered\n");
+		return;
+	}
+}
+

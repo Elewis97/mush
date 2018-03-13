@@ -112,10 +112,15 @@ int main (int argc, char *argv[])
 	pid_t pid = 0;
     struct Stage **stages = NULL;
     int len = 0;
+    char cmd[CMAX];
     while(1) {
-        getLine();
+        getUserInput(cmd);
+        getLine(cmd);
         stages = get_stages();
         len = get_num_stages();
+        /*if (strstr(stages->input, "stdin")) {
+            execute()
+        }*/
     }
 
 	return 0;

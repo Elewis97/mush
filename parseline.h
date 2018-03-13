@@ -42,5 +42,7 @@ bool getStages(char arg[], int stageNum, char** tokens);
 
 bool getLine();
 
+void getUserInput(char line[]);
+
 
 #endif
