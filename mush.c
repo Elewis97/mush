@@ -3,9 +3,12 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
- #include <sys/types.h>
+#include <sys/types.h>
 #include <ctype.h>
 #include <unistd.h>
+#include "parseline.h"
+#include <sys/wait.h>
+
 
 #define CMAX 512 /*Command line length max*/
 #define PMAX 10  /*Pipeline command max*/
@@ -63,10 +66,48 @@ else
     }
 }*/
 
-void executeC()
+void parseSomething(char *command, char **paramBuffer)
 {
-	/*checks if redirect is necessary*/
-	/*executes as directed*/
+    int i;
+
+    for (i = 0; i < PMAX; i++) {
+        paramBuffer[i] = strsep(&command, " ");
+        if(paramBuffer[i] == NULL)
+            break;
+    }
+}
+
+void executeC(char *command)
+{
+    char *argv[CMAX];
+    pid_t pid = fork();
+    int childStat;
+
+
+    parseSomething(command, argv);
+    
+    /*is command valid?*/
+
+    /*execute*/
+
+    /*error*/
+    if (pid == -1) {
+        /*do something else?*/
+        fprintf(stderr, "pid went wrong\n");
+    }
+    /*child process*/
+    else if (pid == 0) {
+        execvp(argv[0], argv);
+
+        /*check for error*/
+    }
+
+    /*parent process*/
+    else {
+        waitpid(pid, &childStat, 0);
+    }
+
+    /*... I have no idea if this works*/
 }
 
 
@@ -75,10 +116,9 @@ void executeC()
 
 int main (int argc, char *argv[])
 {
-	pid_t pid;
     char *const parmList[] = {"ls", NULL};
 
     execv("/bin/ls", parmList);
 
-	return 0;
+    return 0;
 }

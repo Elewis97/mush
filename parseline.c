@@ -168,8 +168,8 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	int redir_out = -1;
 	char prev_cmd[512] = {0};
 	char next_cmd[512] = {0};
-	char pipe_num_in = 0;
-	char pipe_num_out = 0;
+	/*char pipe_num_in = 0;
+	char pipe_num_out = 0;*/
 	static int stage_num = 0;
 
 	/*printf("arg: %s\n", arg);*/
@@ -383,8 +383,8 @@ bool getLine()
 	return false;
 }
 
-int main() {
+/*int main() {
 
 	getLine();
 	return 0;
-}
+}*/
