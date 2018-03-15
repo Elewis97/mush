@@ -174,6 +174,7 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	int redir_out = -1;
 	char prev_cmd[512] = {0};
 	char next_cmd[512] = {0};
+	char keepArg[CMAX] = {0};
 	/*char pipe_num_in = 0;
 	char pipe_num_out = 0;*/
 	static int stage_num = 0;
@@ -255,7 +256,7 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 
 	// printf("%s\n", stage->input);
 	// printf("%s\n", stage->output);
-
+	strcpy(stage->argv, arg);
 	token = strtok(arg, " ");
 	for (i = 0; i < CMAX; i++)
 		tempArgv[i] = '\0';
@@ -277,7 +278,7 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	if (strlen(tempArgv) >= 1) {
 		tempArgv[strlen(tempArgv) - 1] = '\0';
 	}
-	strcpy(stage->argv, tempArgv);
+	// strcpy(stage->argv, tempArgv);
 /*	printf("%10s: %d\n", "argc", count);
 	printf("%10s: %s\n", "argv", tempArgv);*/
 

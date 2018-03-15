@@ -73,14 +73,14 @@ void parseSomething(char *command, char **paramBuffer)
     }
 }
 
-void executeC(char *command)
+void executeC(struct Stage *stages)
 {
     char *argv[CMAX];
     pid_t pid = fork();
     int childStat;
 
 
-    parseSomething(command, argv);
+    /*parseSomething(command, argv);*/
     
     /*is command valid?*/
 
@@ -93,7 +93,8 @@ void executeC(char *command)
     }
     /*child process*/
     else if (pid == 0) {
-        execvp(argv[0], argv);
+        // execvp(stages->argv[0], stages->argv);
+        printf("PID == 0\n");
 
         /*check for error*/
     }
@@ -113,11 +114,11 @@ int main (int argc, char *argv[])
     struct Stage **stages = NULL;
     int len = 0;
     while(1) {
-        // getUserInput(cmd);
         getLine();
         stages = get_stages();
         len = get_num_stages();
-        printf("userInput: %s\n", (*stages)->input);
+        /*executeC(*stages);*/
+        printf("%10s: %s\n", "argv", (*stages)->argv);
     }
 
 	return 0;
