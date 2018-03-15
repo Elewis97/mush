@@ -10,6 +10,9 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+pid_t pid;
+struct sigaction siga;
+
 /*Things we need to do:
  - Make sure it doesn't exit at ctrl c*/
 
@@ -77,10 +80,9 @@ void parseSomething(char *command, char **paramBuffer)
 void executeC(struct Stage *stages)
 {
     char *argv[CMAX];
-    pid_t pid = fork();
     int childStat;
 
-
+    pid = fork();
     parseSomething(stages->argv, argv);
     
     /*is command valid?*/
@@ -110,18 +112,20 @@ void executeC(struct Stage *stages)
 
 void ctrlHandler(int sig)
 {
+    char c;
     printf("FUCKING DAMN, why the fuck did you hit CTRL-C?\n");
-    fflush(stdout);
-    exit(0);
+    sigaction(SIGINT, &siga, NULL);
+    // fflush(stdout);
+    /*if (pid == 0) {
+        exit(0);
+    }*/
 }
 
 
 int main (int argc, char *argv[])
 {
-	pid_t pid = 0;
     struct Stage **stages = NULL;
     int len = 0;
-    struct sigaction siga;
     int i;
 
     memset(&siga, 0, sizeof(siga));
@@ -135,6 +139,7 @@ int main (int argc, char *argv[])
         len = get_num_stages();
         for (i = 0; i < len; i++)
             executeC(stages[i]);
+        printf("EXECUTED\n");
     }
 
 	return 0;

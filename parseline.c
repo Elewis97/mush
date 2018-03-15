@@ -174,7 +174,6 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 	int redir_out = -1;
 	char prev_cmd[512] = {0};
 	char next_cmd[512] = {0};
-	char keepArg[CMAX] = {0};
 	/*char pipe_num_in = 0;
 	char pipe_num_out = 0;*/
 	static int stage_num = 0;
@@ -340,6 +339,8 @@ bool getLine()
 	/*get command while checking if input
 	exceeds command line length max (CMAX)*/
 	while((c = getchar()) != '\n') {
+		if (c == EOF)
+			exit(0);
 		line[idx] = c;
 		idx++;
 		if (idx > CMAX) {
