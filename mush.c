@@ -80,7 +80,7 @@ void executeC(struct Stage *stages)
     int childStat;
 
 
-    /*parseSomething(command, argv);*/
+    parseSomething(stages->argv, argv);
     
     /*is command valid?*/
 
@@ -93,7 +93,7 @@ void executeC(struct Stage *stages)
     }
     /*child process*/
     else if (pid == 0) {
-        // execvp(stages->argv[0], stages->argv);
+        execvp(argv[0], argv);
         printf("PID == 0\n");
 
         /*check for error*/
@@ -117,8 +117,8 @@ int main (int argc, char *argv[])
         getLine();
         stages = get_stages();
         len = get_num_stages();
-        /*executeC(*stages);*/
-        printf("%10s: %s\n", "argv", (*stages)->argv);
+        executeC(*stages);
+        // printf("%10s: %s\n", "argv", (*stages)->argv);
     }
 
 	return 0;
