@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -21,31 +22,14 @@ void parseSomething(char *command, char **paramBuffer)
 }
 
 
-void exec_redir(struct Stage **stages, int stage_len) {
-
-    int i = 0;
-
-    for(i = 0; i < stage_len; i++) {
-
-        
-    }
-
-}
-
-
-void executeC(struct Stage **stage_list, int stage_len) {
+void executeC(struct Stage *stages) {
 
     int status = 0;
     char *argv[CMAX];
     char temp[CMAX] = {0};
 
-    struct Stage *stages = stage_list[0];
 
-    if(strcmp(stages -> input, "stdin") ||
-        strcmp(stages -> output, "stdout")) {
-            exec_redir(stage_list, stage_len);
-            return;
-    }
+    printf("%s\n", stages -> argv);
 
     strcpy(temp, stages -> argv);
 
@@ -82,17 +66,27 @@ void executeC(struct Stage **stage_list, int stage_len) {
 //
 // }
 
+void ctrlHandler(int sig)
+{
+    signal(SIGINT, ctrlHandler);
+    if(pid == 0) {
+        exit(0);
+    }
+
+}
+
+
 
 int main (int argc, char *argv[])
 {
-    struct Stage *stage_list[CMAX] = {NULL};
+    struct Stage *stages[CMAX] = {NULL};
     int stage_len = 0;
 
+    signal(SIGINT, ctrlHandler);
+
     while(1) {
-        if(getLine(stage_list, &stage_len)) {
-            continue;
-        }
-        executeC(stage_list, stage_len);
+        getLine(stages, &stage_len);
+        executeC(stages[0]);
     }
 
 	return 0;

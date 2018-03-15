@@ -17,19 +17,7 @@ struct Stage {
 
 static struct Stage *stage = NULL;
 
-static struct Stage *stages[PMAX] = {NULL};
-
-static int num_stages = 0;
-
 /********************Helper****************/
-
-struct Stage **get_stages() {
-	return stages;
-}
-
-int get_num_stages() {
-	return num_stages;
-}
 
 void initStage()
 {
@@ -161,7 +149,8 @@ void get_next_cmd(char **tokens, int tokIdx, char buffer[]) {
 }
 
 
-int fillCommand(char arg[], char **tokens, int tokIdx, int len)
+int fillCommand(char arg[], char **tokens, int tokIdx, int len,
+						struct Stage **stages)
 {
 	initStage();
 	int count = 0;
@@ -290,7 +279,8 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len)
 }
 
 
-bool getCommand(char arg[], char** tokens, int tokIdx)
+bool getCommand(char arg[], char** tokens, int tokIdx,
+				struct Stage **stages)
 {
 	int i = 0;
 	int len = 0;
@@ -299,14 +289,15 @@ bool getCommand(char arg[], char** tokens, int tokIdx)
 		len ++;
 		i++;
 	}
-	if(fillCommand(arg, tokens, tokIdx, len) == -1) {
+	if(fillCommand(arg, tokens, tokIdx, len, stages) == -1) {
 		return true;
 	}
 	/*displayStage(stage);*/
 	return false;
 }
 
-bool getStages(char arg[], int stageNum, char** tokens)
+bool getStages(char arg[], int stageNum, char** tokens,
+			struct Stage **stages)
 {
 	bool error = false;
 	/*printf("--------\nStage %d: ", stageNum);
@@ -315,7 +306,7 @@ bool getStages(char arg[], int stageNum, char** tokens)
 
 	/*ensure to not exceed state limit*/
 
-	error = getCommand(arg, tokens, stageNum);
+	error = getCommand(arg, tokens, stageNum, stages);
 
 	if (error) {
 		freeRemainingTokens(tokens, stageNum);
@@ -325,7 +316,7 @@ bool getStages(char arg[], int stageNum, char** tokens)
 	return false;
 }
 
-bool getLine()
+bool getLine(struct Stage **stages, int *stage_len)
 {
 	char line[CMAX];
 	char c;
@@ -345,38 +336,45 @@ bool getLine()
 		idx++;
 		if (idx > CMAX) {
 			fprintf(stderr,"command too long\n");
-			return -1;
+			return true;
 		}
 	}
+
 	// line[idx] = '\0';
 
 	/*Check if there are any commands*/
 	if (strlen(line) <= 1) {
 		fprintf(stderr, "No command entered\n");
-		return -1;
+		return true;
 	}
 
 	/*Parse commands by pipeline*/
 	tokens = splitStr(line, '|');
 	while(*(tokens + len)) {
 		len ++;
-		num_stages++;
+		stage_len++;
 	}
 	if(len > PMAX) {
 		fprintf(stderr, "pipeline too deep\n");
-		return -1;
+		return true;
 	}
 
 	/*exit if there aren't any commands*/
 	if(!tokens) {
 		fprintf(stderr, "No arguments outputed\n");
-		return -1;
+		return true;
 	}
 
 	/*loop through stages*/
 	i = 0;
 	while(*(tokens + i)) {
-		if(getStages(*(tokens + i), i, tokens)) {
+		if(getStages(*(tokens + i), i, tokens, stages)) {
+			i = 0;
+			while (*(tokens + i)) {
+				free(*(tokens + i));
+				i++;
+			}
+			free(tokens);
 			return true;
 		}
 		/*free(*(tokens + i));*/
