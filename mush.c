@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "parseline.h"
 #include <sys/wait.h>
+#include <signal.h>
 
 /*Things we need to do:
  - Make sure it doesn't exit at ctrl c*/
@@ -107,18 +108,33 @@ void executeC(struct Stage *stages)
     /*... I have no idea if this works*/
 }
 
+void ctrlHandler(int sig)
+{
+    printf("FUCKING DAMN, why the fuck did you hit CTRL-C?\n");
+    fflush(stdout);
+    exit(0);
+}
+
 
 int main (int argc, char *argv[])
 {
 	pid_t pid = 0;
     struct Stage **stages = NULL;
     int len = 0;
+    struct sigaction siga;
+    int i;
+
+    memset(&siga, 0, sizeof(siga));
+
+    siga.sa_handler = &ctrlHandler;
+
+    sigaction (SIGINT, &siga, NULL);
     while(1) {
         getLine();
         stages = get_stages();
         len = get_num_stages();
-        executeC(*stages);
-        // printf("%10s: %s\n", "argv", (*stages)->argv);
+        for (i = 0; i < len; i++)
+            executeC(stages[i]);
     }
 
 	return 0;
