@@ -129,7 +129,7 @@ bool getLine(struct Stage **stages, int *stage_len)
     tokens = splitStr(line, '|');
     while(*(tokens + len)) {
         len ++;
-        stage_len++;
+        (*stage_len)++;
     }
     if(len > PMAX) {
         fprintf(stderr, "pipeline too deep\n");
@@ -181,6 +181,8 @@ void executeC(struct Stage **stage_list, int stage_len) {
     if(strcmp(stages -> input, "stdin") ||
         strcmp(stages -> output, "stdout")) {
             exec_redir(stage_list, stage_len);
+            free(stages);
+            exit(0);
             return;
     }
     strcpy(temp, stages -> argv);
