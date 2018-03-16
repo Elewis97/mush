@@ -44,7 +44,6 @@ void exec_redir(struct Stage **stages, int stage_len) {
 
     printf("in exec\n");
 
-    //don't forget to restore the stdin
     saved_in = dup(STDIN_FILENO);
     printf("stlen: %d\n", stage_len);
 
@@ -59,9 +58,6 @@ void exec_redir(struct Stage **stages, int stage_len) {
             write(STDIN_FILENO, &buf, 1);
         }
         // TODO print out input to stdin if input is a file
-        // makes 'in' become stdin
-        // in = open(file, O_RDONLY, 666);
-        // dup2(in, STDIN_FILENO);
         fp = popen(stages[i] -> argv, "r");
 
         printf("up here\n");
@@ -153,12 +149,12 @@ bool getLine(struct Stage **stages, int *stage_len)
     i = 0;
     while(*(tokens + i)) {
         if(getStages(*(tokens + i), i, tokens, stages)) {
-            i = 0;
-            while (*(tokens + i)) {
-                free(*(tokens + i));
-                i++;
-            }
-            free(tokens);
+            // i = 0;
+            // while (*(tokens + i)) {
+            //     free(*(tokens + i));
+            //     i++;
+            // }
+            // free(tokens);
             return true;
         }
         /*free(*(tokens + i));*/
@@ -211,9 +207,16 @@ void executeC(struct Stage **stage_list, int stage_len) {
         printf("... didn't exit");
 */
     if(pid == 0) {
-        if(execvp(argv[0], argv) < 0) {
+        /*check if it is cd*/
+        if (strcmp(argv[0], "cd") == 0
+            && stages->argc == 2) {
+            chdir(argv[1]);
+            free(stages);
+        }
+        else if(execvp(argv[0], argv) < 0) {
             fprintf(stderr, "%s: No such file or directory\n",
                 argv[0]);
+            free(stages);
             exit(1);
         }
         exit(0);

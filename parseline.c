@@ -274,6 +274,10 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len,
 
 	stages[stage_num] = stage;
 	stage_num++;
+	if (count > PMAX) {
+		fprintf(stderr, "Too many arguments\n");
+		return -1;
+	}
 
 	return 0;
 }
