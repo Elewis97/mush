@@ -6,6 +6,8 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 struct sigaction siga;
 bool isSig;
@@ -37,6 +39,8 @@ void exec_redir(struct Stage **stages, int stage_len) {
     FILE *fp = NULL;
     int saved_in = 0;
     char buf = 0;
+    bool input_changed = 0;
+    int out = 0;
 
     //don't forget to restore the stdin
     saved_in = dup(STDIN_FILENO);
@@ -54,9 +58,25 @@ void exec_redir(struct Stage **stages, int stage_len) {
         // in = open(file, O_RDONLY, 666);
         // dup2(in, STDIN_FILENO);
         fp = popen(stages[i] -> argv, "r");
-        //TODO do something with the output if it's not piped
-        // if it's not piped, print out fp, set fp = NULL
-        // restore stdin 
+
+        if(i == stage_len - 1) {
+            buf = 0;
+            if(strcmp(stages[i] -> output, "stdout") == 0) {
+                while((buf = fgetc(fp)) != EOF) {
+                    write(STDOUT_FILENO, &buf, 1);
+                }
+            }
+            else {
+                out = open(stages[i] -> output, O_RDWR | O_CREAT, 666);
+                while((buf = fgetc(fp)) != EOF) {
+                    write(out, &buf, 1);
+                }
+                close(out);
+            }
+
+            pclose(fp);
+            fp = NULL;
+        }
     }
 
 }
@@ -84,7 +104,7 @@ void getUserInput()
          exit(0);
      }
      if (isSig) {
-        zeroLine(line);
+        zeroLine();
         printf("\n8-p ");
         isSig = false;
      }
