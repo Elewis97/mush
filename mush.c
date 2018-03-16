@@ -38,7 +38,6 @@ void exec_redir(struct Stage **stages, int stage_len) {
     int saved_in = 0;
     char buf = 0;
 
-    //don't forget to restore the stdin
     saved_in = dup(STDIN_FILENO);
 
     for(i = 0; i < stage_len; i++) {
@@ -50,13 +49,9 @@ void exec_redir(struct Stage **stages, int stage_len) {
             }
         }
         // TODO print out input to stdin if input is a file
-        // makes 'in' become stdin
-        // in = open(file, O_RDONLY, 666);
-        // dup2(in, STDIN_FILENO);
         fp = popen(stages[i] -> argv, "r");
         //TODO do something with the output if it's not piped
-        // if it's not piped, print out fp, set fp = NULL
-        // restore stdin 
+        // if it's not piped, set fp = NULL
     }
 
 }
