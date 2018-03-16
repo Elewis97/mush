@@ -41,45 +41,71 @@ void exec_redir(struct Stage **stages, int stage_len) {
     char buf = 0;
     bool input_changed = 0;
     int out = 0;
+    int fstdout;
+    int fstdin;
 
-    printf("in exec\n");
 
-    saved_in = dup(STDIN_FILENO);
-    printf("stlen: %d\n", stage_len);
+    // saved_in = dup(STDIN_FILENO);
+    // printf("stlen: %d\n", stage_len);
+
+    // /* change stdout to file if output isn't stdout*/
+    // if (strcmp((*stages)->output, "stdout")) {
+    //     printf("out\n");
+    //     fstdout = open((*stages)->output, O_RDWR | O_CREAT,
+    //         S_IRUSR | S_IWUSR);
+
+    //     dup2(fstdout, 1); //make stdout go to file
+
+    //     close(fstdout);
+    // }
+
+    // /*change stdin to file if input isn't stdin*/
+    // if (strcmp((*stages) ->input, "stdin")) {
+    //     printf("in\n");
+    //     fstdin = open((*stages)->input, O_RDONLY, 
+    //         S_IRUSR | S_IWUSR);
+
+    //     dup2(fstdin, 0); //make stdin read from file
+
+    //     close(fstdin);
+    // }
+
 
     for(i = 0; i < stage_len; i++) {
 
         if(fp != NULL) {
-
             while((buf = fgetc(fp)) != EOF) {
                 write(STDIN_FILENO, &buf, 1);
+                // putchar(buf);
             }
-            buf = EOF;
-            write(STDIN_FILENO, &buf, 1);
+            // buf = EOF;
+            // putchar(buf);
+            // write(STDIN_FILENO, &buf, 1);
         }
         // TODO print out input to stdin if input is a file
         fp = popen(stages[i] -> argv, "r");
+        wait(NULL);
 
-        printf("up here\n");
         if(i == stage_len - 1) {
-            printf("here\n");
             buf = 0;
             if(strcmp(stages[i] -> output, "stdout") == 0) {
-                printf("under the if \n");
-                while((buf = fgetc(fp)) != EOF) {
-                    printf("over here\n");
-                    write(STDOUT_FILENO, &buf, 1);
-                }
+                // fstdout = open((*stages)->output, O_RDWR | O_CREAT,
+                //     S_IRUSR | S_IWUSR);
+
+                // dup2(fstdout, 1); //make stdout go to file
+
+                // close(fstdout);
             }
             else {
-                out = open(stages[i] -> output, O_RDWR | O_CREAT, 666);
-                while((buf = fgetc(fp)) != EOF) {
-                    write(out, &buf, 1);
-                }
-                close(out);
+                fstdout = open((*stages)->output, O_RDONLY, 
+                    S_IRUSR | S_IWUSR);
+
+                dup2(fstdout, 0); //make stdin read from file
+
+                close(fstdout);
             }
 
-            pclose(fp);
+            // pclose(fp);
             fp = NULL;
         }
     }
@@ -181,10 +207,9 @@ void executeC(struct Stage **stage_list, int stage_len) {
 
     struct Stage *stages = stage_list[0];
 
-    printf("before\n");
+    // printf("before\n");
     if(strcmp(stages -> input, "stdin") ||
         strcmp(stages -> output, "stdout")) {
-            printf("in\n");
             exec_redir(stage_list, stage_len);
             free(stages);
             exit(0);
@@ -253,7 +278,6 @@ int main (int argc, char *argv[])
     signal(SIGINT, ctrlHandler);
 
     zeroLine();
-
 
     while(1) {
         parentPID = getpid();
