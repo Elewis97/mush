@@ -24,10 +24,25 @@ void parseSomething(char *command, char **paramBuffer)
 void exec_redir(struct Stage **stages, int stage_len) {
 
     int i = 0;
+    FILE *fp = NULL;
+    int in = 0;
+    int saved_in = 0;
+    char buf = 0;
+
+    saved_in = dup(STDIN_FILENO);
 
     for(i = 0; i < stage_len; i++) {
 
-        
+        if(fp != NULL) {
+
+            while((buf = fgetc(fp)) != EOF) {
+                write(STDIN_FILENO, &buf, 1);
+            }
+        }
+        // TODO print out input to stdin if input is a file
+        fp = popen(stages[i] -> argv, "r");
+        //TODO do something with the output if it's not piped
+        // if it's not piped, set fp = NULL
     }
 
 }
