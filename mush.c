@@ -35,7 +35,6 @@ void exec_redir(struct Stage **stages, int stage_len) {
 
     int i = 0;
     FILE *fp = NULL;
-    int in = 0;
     int saved_in = 0;
     char buf = 0;
 
@@ -75,8 +74,10 @@ void getUserInput()
     /*get command while checking if input
     exceeds command line length max (CMAX)*/
     while((c = getchar()) != '\n') {
-     if (c == EOF)
+     if (c == EOF) {
+        kill(parentPID, 9);
          exit(0);
+     }
      if (isSig) {
         zeroLine(line);
         printf("\n8-p ");
@@ -107,7 +108,7 @@ bool getLine(struct Stage **stages, int *stage_len)
     exceeds command line length max (CMAX)*/
     while((c = getchar()) != '\n') {
         if (c == EOF)
-            exit(0);
+            exit(3);
         line[idx] = c;
         idx++;
         if (idx > CMAX) {
@@ -173,7 +174,7 @@ void executeC(struct Stage **stage_list, int stage_len) {
     int status = 0;
     char *argv[CMAX];
     char temp[CMAX] = {0};
-    pid_t pid;
+    // pid_t pid;
 
     struct Stage *stages = stage_list[0];
 
@@ -186,7 +187,7 @@ void executeC(struct Stage **stage_list, int stage_len) {
 
     parseSomething(temp, argv);
 
-    pid = fork();
+    // pid = fork();
 
     if(pid == -1) {
         fprintf(stderr, "Something's wrong with fork()\n");
@@ -216,68 +217,22 @@ void executeC(struct Stage **stage_list, int stage_len) {
 
 void ctrlHandler(int sig)
 {
-    char c;
-    pid_t selfPID = getpid();
     signal(sig, SIG_IGN);
-    // printf("FUCKING DAMN, why the fuck did you hit CTRL-C?\n");
     fflush(stdout);
-    if(parentPID != selfPID)
+    if(pid == 0) {
+        printf("\n");
         exit(0);
-    /*zeroLine();
-    printf("\n8-p ");*/
+    }
     signal(SIGINT, ctrlHandler);
-    // isSig = true;
-    // if(pid == 0)
-    //     exit(0);
-    // else {
-    //     // c = getchar();
-    //     // zeroLine();
-    //     // printf("\n8-p ");
-    //     signal(SIGQUIT, SIG_IGN);
-    //     kill(-parent_pid, SIGQUIT);
-    //     signal(SIGINT, ctrlHandler);
-    // }
 
-    // sigaction(SIGINT, &siga, NULL);
-    // fflush(stdout);
-    /*if (pid == 0) {
-        exit(0);
-    }*/
 }
-
-// void clear_stages(struct Stage **stages, int len) {
-//
-//     int i = 0;
-//
-//     for(i = 0; i < len; i++) {
-//
-//         stages[i] = NULL;
-//     }
-//
-// }
-
 
 int main (int argc, char *argv[])
 {
-    // struct Stage **stages = NULL;
-    // int len = 0;
-    // int i;
-    // isSig = false;
-    /*memset(&siga, 0, sizeof(siga));
-
-    siga.sa_handler = &ctrlHandler;*/
-
-    // sigaction (SIGINT, &siga, NULL);
-    // signal(SIGINT, ctrlHandler);
-    // while(1) {
-        // getUserInput();
-        // getLine(line);
-        // stages = get_stages();
-        // len = get_num_stages();
-        // printf("stages argv: %s\n", (*stages)->argv);
-        // executeC(*stages);
     struct Stage *stage_list[CMAX] = {NULL};
     int stage_len = 0;
+    int status = 0;
+
 
     parentPID = getpid();
 
@@ -288,11 +243,22 @@ int main (int argc, char *argv[])
 
     while(1) {
         parentPID = getpid();
-        if(getLine(stage_list, &stage_len)) {
-            continue;
+        pid = fork();
+        if (pid == 0) {
+            if(getLine(stage_list, &stage_len)) {
+                continue;
+            }
+            executeC(stage_list, stage_len);
         }
-        executeC(stage_list, stage_len);
+        else{
+            wait(&status);
+            // printf("status: %d\n", WEXITSTATUS(status));
+            if (WEXITSTATUS(status) == 3)
+                exit(0);
+        }
+
+        // executeC(stage_list, stage_len);
     }
 
-	return 0;
+    return 0;
 }
