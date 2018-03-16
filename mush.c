@@ -6,6 +6,8 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 struct sigaction siga;
 bool isSig;
@@ -37,8 +39,13 @@ void exec_redir(struct Stage **stages, int stage_len) {
     FILE *fp = NULL;
     int saved_in = 0;
     char buf = 0;
+    bool input_changed = 0;
+    int out = 0;
+
+    printf("in exec\n");
 
     saved_in = dup(STDIN_FILENO);
+    printf("stlen: %d\n", stage_len);
 
     for(i = 0; i < stage_len; i++) {
 
@@ -47,11 +54,34 @@ void exec_redir(struct Stage **stages, int stage_len) {
             while((buf = fgetc(fp)) != EOF) {
                 write(STDIN_FILENO, &buf, 1);
             }
+            buf = EOF;
+            write(STDIN_FILENO, &buf, 1);
         }
         // TODO print out input to stdin if input is a file
         fp = popen(stages[i] -> argv, "r");
-        //TODO do something with the output if it's not piped
-        // if it's not piped, set fp = NULL
+
+        printf("up here\n");
+        if(i == stage_len - 1) {
+            printf("here\n");
+            buf = 0;
+            if(strcmp(stages[i] -> output, "stdout") == 0) {
+                printf("under the if \n");
+                while((buf = fgetc(fp)) != EOF) {
+                    printf("over here\n");
+                    write(STDOUT_FILENO, &buf, 1);
+                }
+            }
+            else {
+                out = open(stages[i] -> output, O_RDWR | O_CREAT, 666);
+                while((buf = fgetc(fp)) != EOF) {
+                    write(out, &buf, 1);
+                }
+                close(out);
+            }
+
+            pclose(fp);
+            fp = NULL;
+        }
     }
 
 }
@@ -65,33 +95,6 @@ void zeroLine()
     }
 }
 
-void getUserInput()
-{
-    int idx = 0;
-    char c;
-    printf("8-p ");
-
-    /*get command while checking if input
-    exceeds command line length max (CMAX)*/
-    while((c = getchar()) != '\n') {
-     if (c == EOF) {
-        kill(parentPID, 9);
-         exit(0);
-     }
-     if (isSig) {
-        zeroLine(line);
-        printf("\n8-p ");
-        isSig = false;
-     }
-     line[idx] = c;
-     idx++;
-     if (idx > CMAX) {
-         fprintf(stderr,"command too long\n");
-         return;
-     }
-    }
-    line[idx] = '\0';
-}
 
 bool getLine(struct Stage **stages, int *stage_len)
 {
@@ -178,8 +181,10 @@ void executeC(struct Stage **stage_list, int stage_len) {
 
     struct Stage *stages = stage_list[0];
 
+    printf("before\n");
     if(strcmp(stages -> input, "stdin") ||
         strcmp(stages -> output, "stdout")) {
+            printf("in\n");
             exec_redir(stage_list, stage_len);
             free(stages);
             exit(0);
@@ -205,7 +210,7 @@ void executeC(struct Stage **stage_list, int stage_len) {
 */
     if(pid == 0) {
         /*check if it is cd*/
-        if (strcmp(argv[0], "cd") == 0 
+        if (strcmp(argv[0], "cd") == 0
             && stages->argc == 2) {
             chdir(argv[1]);
             free(stages);
@@ -255,7 +260,7 @@ int main (int argc, char *argv[])
         pid = fork();
         if (pid == 0) {
             if(getLine(stage_list, &stage_len)) {
-                continue;
+                exit(0);
             }
             executeC(stage_list, stage_len);
         }
