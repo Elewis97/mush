@@ -38,9 +38,10 @@ int fillCommand(char arg[], char **tokens, int tokIdx, int len);
 
 bool getCommand(char arg[], char** tokens, int tokIdx);
 
-bool getStages(char arg[], int stageNum, char** tokens);
+bool getStages(char arg[], int stageNum, char** tokens,
+			struct Stage **stages);
 
-bool getLine();
+// bool getLine();
 
 
 #endif
