@@ -12,6 +12,8 @@
 
 pid_t pid;
 struct sigaction siga;
+bool isSig;
+char line[CMAX];
 
 /*Things we need to do:
  - Make sure it doesn't exit at ctrl c*/
@@ -77,6 +79,41 @@ void parseSomething(char *command, char **paramBuffer)
     }
 }
 
+void zeroLine()
+{
+    int i;
+
+    for (i = 0; i < CMAX; i++) {
+        line[i] = '\0';
+    }
+}
+
+void getUserInput()
+{
+    int idx = 0;
+    char c;
+    printf("8-p ");
+
+    /*get command while checking if input
+    exceeds command line length max (CMAX)*/
+    while((c = getchar()) != '\n') {
+     if (c == EOF)
+         exit(0);
+     if (isSig) {
+        zeroLine(line);
+        printf("\n8-p ");
+        isSig = false;
+     }
+     line[idx] = c;
+     idx++;
+     if (idx > CMAX) {
+         fprintf(stderr,"command too long\n");
+         return;
+     }
+    }
+    line[idx] = '\0';
+}
+
 void executeC(struct Stage *stages)
 {
     char *argv[CMAX];
@@ -96,8 +133,11 @@ void executeC(struct Stage *stages)
     }
     /*child process*/
     else if (pid == 0) {
+        printf("argv[0]: %s\n", argv[0]);
         execvp(argv[0], argv);
-        printf("PID == 0\n");
+        fflush(stdout);
+        exit(EXIT_SUCCESS);
+        printf("... didn't exit");
 
         /*check for error*/
     }
@@ -113,8 +153,15 @@ void executeC(struct Stage *stages)
 void ctrlHandler(int sig)
 {
     char c;
+    signal(sig, SIG_IGN);
     printf("FUCKING DAMN, why the fuck did you hit CTRL-C?\n");
-    sigaction(SIGINT, &siga, NULL);
+    fflush(stdout);
+    // isSig = true;
+    if(pid == 0)
+        exit(0);
+    else
+        signal(SIGINT, ctrlHandler);
+    // sigaction(SIGINT, &siga, NULL);
     // fflush(stdout);
     /*if (pid == 0) {
         exit(0);
@@ -127,19 +174,23 @@ int main (int argc, char *argv[])
     struct Stage **stages = NULL;
     int len = 0;
     int i;
+    isSig = false;
 
-    memset(&siga, 0, sizeof(siga));
+    zeroLine();
 
-    siga.sa_handler = &ctrlHandler;
+    /*memset(&siga, 0, sizeof(siga));
 
-    sigaction (SIGINT, &siga, NULL);
+    siga.sa_handler = &ctrlHandler;*/
+
+    // sigaction (SIGINT, &siga, NULL);
+    signal(SIGINT, ctrlHandler);
     while(1) {
-        getLine();
+        getUserInput();
+        getLine(line);
         stages = get_stages();
         len = get_num_stages();
-        for (i = 0; i < len; i++)
-            executeC(stages[i]);
-        printf("EXECUTED\n");
+        printf("stages argv: %s\n", (*stages)->argv);
+        executeC(*stages);
     }
 
 	return 0;
