@@ -146,12 +146,12 @@ bool getLine(struct Stage **stages, int *stage_len)
     i = 0;
     while(*(tokens + i)) {
         if(getStages(*(tokens + i), i, tokens, stages)) {
-            i = 0;
-            while (*(tokens + i)) {
-                free(*(tokens + i));
-                i++;
-            }
-            free(tokens);
+            // i = 0;
+            // while (*(tokens + i)) {
+            //     free(*(tokens + i));
+            //     i++;
+            // }
+            // free(tokens);
             return true;
         }
         /*free(*(tokens + i));*/
@@ -202,9 +202,16 @@ void executeC(struct Stage **stage_list, int stage_len) {
         printf("... didn't exit");
 */
     if(pid == 0) {
-        if(execvp(argv[0], argv) < 0) {
+        /*check if it is cd*/
+        if (strcmp(argv[0], "cd") == 0 
+            && stages->argc == 2) {
+            chdir(argv[1]);
+            free(stages);
+        }
+        else if(execvp(argv[0], argv) < 0) {
             fprintf(stderr, "%s: No such file or directory\n",
                 argv[0]);
+            free(stages);
             exit(1);
         }
         exit(0);
