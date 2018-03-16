@@ -1,16 +1,12 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <stdbool.h>
-#include <sys/types.h>
-#include <ctype.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "parseline.h"
-#include <sys/wait.h>
+#include <string.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-pid_t pid;
 struct sigaction siga;
 bool isSig;
 char line[CMAX];
@@ -20,53 +16,8 @@ char line[CMAX];
 
 /*cat*/
 
-/*NOTE: I found these things on the internet,
-They are not to be implemented into the code, but
-simply used as a refrence for how exec and fork
-are to be used*/
-
-/*sample redirect exec to send output to a file*/
-/*if (fork() == 0)
-{
-    // child
-    int fd = open(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-
-    dup2(fd, 1);   // make stdout go to file
-    dup2(fd, 2);   // make stderr go to file - you may choose to not do this
-                   // or perhaps send stderr to another file
-
-    close(fd);     // fd no longer needed - the dup'ed handles are sufficient
-
-    exec(...);
-}*/
-
-/*sample send output to a pipe to read output into buffer*/
-/*int pipefd[2];
-pipe(pipefd);
-
-if (fork() == 0)
-{
-    close(pipefd[0]);    // close reading end in the child
-
-    dup2(pipefd[1], 1);  // send stdout to the pipe
-    dup2(pipefd[1], 2);  // send stderr to the pipe
-
-    close(pipefd[1]);    // this descriptor is no longer needed
-
-    exec(...);
-}
-else
-{
-    // parent
-
-    char buffer[1024];
-
-    close(pipefd[1]);  // close the write end of the pipe in the parent
-
-    while (read(pipefd[0], buffer, sizeof(buffer)) != 0)
-    {
-    }
-}*/
+pid_t parentPID;
+pid_t pid = 1;
 
 void parseSomething(char *command, char **paramBuffer)
 {
@@ -77,6 +28,33 @@ void parseSomething(char *command, char **paramBuffer)
         if(paramBuffer[i] == NULL)
             break;
     }
+}
+
+
+void exec_redir(struct Stage **stages, int stage_len) {
+
+    int i = 0;
+    FILE *fp = NULL;
+    int in = 0;
+    int saved_in = 0;
+    char buf = 0;
+
+    saved_in = dup(STDIN_FILENO);
+
+    for(i = 0; i < stage_len; i++) {
+
+        if(fp != NULL) {
+
+            while((buf = fgetc(fp)) != EOF) {
+                write(STDIN_FILENO, &buf, 1);
+            }
+        }
+        // TODO print out input to stdin if input is a file
+        fp = popen(stages[i] -> argv, "r");
+        //TODO do something with the output if it's not piped
+        // if it's not piped, set fp = NULL
+    }
+
 }
 
 void zeroLine()
@@ -114,53 +92,152 @@ void getUserInput()
     line[idx] = '\0';
 }
 
-void executeC(struct Stage *stages)
+bool getLine(struct Stage **stages, int *stage_len)
 {
+    // char line[CMAX];
+    char c;
+    int idx = 0;
+    char **tokens;
+    int i;
+    int len = 0;
+
+    printf("8-p ");
+
+    /*get command while checking if input
+    exceeds command line length max (CMAX)*/
+    while((c = getchar()) != '\n') {
+        if (c == EOF)
+            exit(0);
+        line[idx] = c;
+        idx++;
+        if (idx > CMAX) {
+            fprintf(stderr,"command too long\n");
+            return true;
+        }
+    }
+
+    // line[idx] = '\0';
+
+    /*Check if there are any commands*/
+    if (strlen(line) <= 1) {
+        fprintf(stderr, "No command entered\n");
+        return true;
+    }
+
+    /*Parse commands by pipeline*/
+    tokens = splitStr(line, '|');
+    while(*(tokens + len)) {
+        len ++;
+        stage_len++;
+    }
+    if(len > PMAX) {
+        fprintf(stderr, "pipeline too deep\n");
+        return true;
+    }
+
+    /*exit if there aren't any commands*/
+    if(!tokens) {
+        fprintf(stderr, "No arguments outputed\n");
+        return true;
+    }
+
+    /*loop through stages*/
+    i = 0;
+    while(*(tokens + i)) {
+        if(getStages(*(tokens + i), i, tokens, stages)) {
+            i = 0;
+            while (*(tokens + i)) {
+                free(*(tokens + i));
+                i++;
+            }
+            free(tokens);
+            return true;
+        }
+        /*free(*(tokens + i));*/
+        i++;
+    }
+
+    i = 0;
+    while (*(tokens + i)) {
+        free(*(tokens + i));
+        i++;
+    }
+    free(tokens);
+
+    return false;
+}
+
+
+void executeC(struct Stage **stage_list, int stage_len) {
+
+    int status = 0;
     char *argv[CMAX];
-    int childStat;
+    char temp[CMAX] = {0};
+    pid_t pid;
+
+    struct Stage *stages = stage_list[0];
+
+    if(strcmp(stages -> input, "stdin") ||
+        strcmp(stages -> output, "stdout")) {
+            exec_redir(stage_list, stage_len);
+            return;
+    }
+    strcpy(temp, stages -> argv);
+
+    parseSomething(temp, argv);
 
     pid = fork();
-    parseSomething(stages->argv, argv);
-    
-    /*is command valid?*/
 
-    /*execute*/
-
-    /*error*/
-    if (pid == -1) {
-        /*do something else?*/
-        fprintf(stderr, "pid went wrong\n");
+    if(pid == -1) {
+        fprintf(stderr, "Something's wrong with fork()\n");
+        return;
     }
     /*child process*/
-    else if (pid == 0) {
+/*    else if (pid == 0) {
         printf("argv[0]: %s\n", argv[0]);
         execvp(argv[0], argv);
         fflush(stdout);
         exit(EXIT_SUCCESS);
         printf("... didn't exit");
-
-        /*check for error*/
+*/
+    if(pid == 0) {
+        if(execvp(argv[0], argv) < 0) {
+            fprintf(stderr, "%s: No such file or directory\n",
+                argv[0]);
+            exit(1);
+        }
+        exit(0);
     }
-
-    /*parent process*/
     else {
-        waitpid(pid, &childStat, 0);
+        wait(&status);
     }
 
-    /*... I have no idea if this works*/
 }
 
 void ctrlHandler(int sig)
 {
     char c;
+    pid_t selfPID = getpid();
     signal(sig, SIG_IGN);
-    printf("FUCKING DAMN, why the fuck did you hit CTRL-C?\n");
+    // printf("FUCKING DAMN, why the fuck did you hit CTRL-C?\n");
     fflush(stdout);
-    // isSig = true;
-    if(pid == 0)
+    if(parentPID != selfPID)
         exit(0);
-    else
-        signal(SIGINT, ctrlHandler);
+    /*zeroLine();
+    printf("\n8-p ");*/
+    signal(SIGINT, ctrlHandler);
+    // isSig = true;
+    // if(pid == 0)
+    //     exit(0);
+    // else {
+    //     // c = getchar();
+    //     // zeroLine();
+    //     // printf("\n8-p ");
+    //     signal(SIGQUIT, SIG_IGN);
+    //     kill(-parent_pid, SIGQUIT);
+    //     signal(SIGINT, ctrlHandler);
+    // }
+
     // sigaction(SIGINT, &siga, NULL);
     // fflush(stdout);
     /*if (pid == 0) {
@@ -168,29 +245,53 @@ void ctrlHandler(int sig)
     }*/
 }
 
+// void clear_stages(struct Stage **stages, int len) {
+//
+//     int i = 0;
+//
+//     for(i = 0; i < len; i++) {
+//
+//         stages[i] = NULL;
+//     }
+//
+// }
+
 
 int main (int argc, char *argv[])
 {
-    struct Stage **stages = NULL;
-    int len = 0;
-    int i;
-    isSig = false;
-
-    zeroLine();
-
+    // struct Stage **stages = NULL;
+    // int len = 0;
+    // int i;
+    // isSig = false;
     /*memset(&siga, 0, sizeof(siga));
 
     siga.sa_handler = &ctrlHandler;*/
 
     // sigaction (SIGINT, &siga, NULL);
+    // signal(SIGINT, ctrlHandler);
+    // while(1) {
+        // getUserInput();
+        // getLine(line);
+        // stages = get_stages();
+        // len = get_num_stages();
+        // printf("stages argv: %s\n", (*stages)->argv);
+        // executeC(*stages);
+    struct Stage *stage_list[CMAX] = {NULL};
+    int stage_len = 0;
+
+    parentPID = getpid();
+
     signal(SIGINT, ctrlHandler);
+
+    zeroLine();
+
+
     while(1) {
-        getUserInput();
-        getLine(line);
-        stages = get_stages();
-        len = get_num_stages();
-        printf("stages argv: %s\n", (*stages)->argv);
-        executeC(*stages);
+        parentPID = getpid();
+        if(getLine(stage_list, &stage_len)) {
+            continue;
+        }
+        executeC(stage_list, stage_len);
     }
 
 	return 0;
